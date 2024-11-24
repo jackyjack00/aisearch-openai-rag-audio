@@ -66,11 +66,14 @@ class RTMiddleTier:
     _token_provider = None
 
     def __init__(self, endpoint: str, deployment: str, credentials: AzureKeyCredential | DefaultAzureCredential, voice_choice: Optional[str] = None):
+        # Set variables
         self.endpoint = endpoint
         self.deployment = deployment
         self.voice_choice = voice_choice
         if voice_choice is not None:
             logger.info("Realtime voice choice set to %s", voice_choice)
+            
+        # Handle API keys
         if isinstance(credentials, AzureKeyCredential):
             self.key = credentials.key
         else:
@@ -224,5 +227,6 @@ class RTMiddleTier:
         await self._forward_messages(ws)
         return ws
     
+    # When the App recieve a GET on "/realtime" invokes the rtmt _websoket_handler function
     def attach_to_app(self, app, path):
         app.router.add_get(path, self._websocket_handler)

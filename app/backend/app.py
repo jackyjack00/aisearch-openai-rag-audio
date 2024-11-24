@@ -17,7 +17,9 @@ async def create_app():
     if not os.environ.get("RUNNING_IN_PRODUCTION"):
         logger.info("Running in development mode, loading from .env file")
         load_dotenv()
-    #take API keys
+    
+    
+    # Handle API keys
     llm_key = os.environ.get("AZURE_OPENAI_API_KEY")
     search_key = os.environ.get("AZURE_SEARCH_API_KEY")
 
@@ -32,8 +34,11 @@ async def create_app():
     llm_credential = AzureKeyCredential(llm_key) if llm_key else credential
     search_credential = AzureKeyCredential(search_key) if search_key else credential
     
+    
+    # Initialize App with aiohttp
     app = web.Application()
 
+    # Define custom a middlwere
     rtmt = RTMiddleTier(
         credentials=llm_credential,
         endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
@@ -47,6 +52,7 @@ async def create_app():
                           "1. Always use the 'search' tool to check the knowledge base before answering a question. \n" + \
                           "2. Always use the 'report_grounding' tool to report the source of information from the knowledge base. \n" + \
                           "3. Produce an answer that's as short as possible. If the answer isn't in the knowledge base, say you don't know."
+    # Define tool to use in function call 
     attach_rag_tools(rtmt,
         credentials=search_credential,
         search_endpoint=os.environ.get("AZURE_SEARCH_ENDPOINT"),
@@ -59,8 +65,10 @@ async def create_app():
         use_vector_query=(os.environ.get("AZURE_SEARCH_USE_VECTOR_QUERY") == "true") or True
         )
 
+    # When the App recieve a GET on "/realtime" invokes the rtmt _websoket_handler function
     rtmt.attach_to_app(app, "/realtime")
 
+    # Handle App routing serving 'static/index.html' as deafault landing page
     current_directory = Path(__file__).parent
     app.add_routes([web.get('/', lambda _: web.FileResponse(current_directory / 'static/index.html'))])
     app.router.add_static('/', path=current_directory / 'static', name='static')
@@ -68,6 +76,7 @@ async def create_app():
     return app
 
 if __name__ == "__main__":
+    # Run the application
     host = "localhost"
     port = 8765
     web.run_app(create_app(), host=host, port=port)
