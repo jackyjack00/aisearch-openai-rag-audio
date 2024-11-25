@@ -51,10 +51,13 @@ export default function useRealTime({
     onReceivedInputAudioTranscriptionCompleted,
     onReceivedError
 }: Parameters) {
+    // This wsEndpoint may be directly OpenAI avoiding rtmt middltier OR the websocket of the middletier
     const wsEndpoint = useDirectAoaiApi
         ? `${aoaiEndpointOverride}/openai/realtime?api-key=${aoaiApiKeyOverride}&deployment=${aoaiModelOverride}&api-version=2024-10-01-preview`
         : `/realtime`;
 
+    // Let React handle the websocket connection and provide the corrct hooks
+    // If middletier is chosen sendJsonMessage sends to middletier every message
     const { sendJsonMessage } = useWebSocket(wsEndpoint, {
         onOpen: () => onWebSocketOpen?.(),
         onClose: () => onWebSocketClose?.(),
@@ -63,6 +66,7 @@ export default function useRealTime({
         shouldReconnect: () => true
     });
 
+    // Initiate a session with an opening message to OpenAI API
     const startSession = () => {
         const command: SessionUpdateCommand = {
             type: "session.update",
@@ -78,10 +82,11 @@ export default function useRealTime({
                 model: "whisper-1"
             };
         }
-
+        // This message, being "session.update", is intercepted and manipulated adding model settings and tools by the middletier
         sendJsonMessage(command);
     };
 
+    // Append audio to the buffer
     const addUserAudio = (base64Audio: string) => {
         const command: InputAudioBufferAppendCommand = {
             type: "input_audio_buffer.append",
@@ -91,6 +96,7 @@ export default function useRealTime({
         sendJsonMessage(command);
     };
 
+    // Clear audio buffer
     const inputAudioBufferClear = () => {
         const command: InputAudioBufferClearCommand = {
             type: "input_audio_buffer.clear"
@@ -99,6 +105,7 @@ export default function useRealTime({
         sendJsonMessage(command);
     };
 
+    // Define behaviour for each received message
     const onMessageReceived = (event: MessageEvent<any>) => {
         onWebSocketMessage?.(event);
 
@@ -109,7 +116,7 @@ export default function useRealTime({
             console.error("Failed to parse JSON message:", e);
             throw e;
         }
-
+        // All the behaviour are defeined as hook and passed as parameters
         switch (message.type) {
             case "response.done":
                 onReceivedResponseDone?.(message as ResponseDone);
