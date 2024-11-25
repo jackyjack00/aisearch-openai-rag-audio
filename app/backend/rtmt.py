@@ -29,12 +29,19 @@ class ToolResult:
         return self.text if type(self.text) == str else json.dumps(self.text)
 
 class Tool:
+    """Abstraction of a Tool necessary for a function call"""
     target: Callable[..., ToolResult]
     schema: Any
 
-    def __init__(self, target: Any, schema: Any):
-        self.target = target
-        self.schema = schema
+    def __init__(self, target: Callable[..., ToolResult], schema: Any):
+        """
+        Args:
+            target (Any): lambda function that represent the functionality of the Tool 
+                e.g. lambda args: function(..., args)
+            schema (Any): json schema for explaining the function to OpenAI API
+        """
+        self.target = target # lambda args: function(..., args)
+        self.schema = schema # 
 
 class RTToolCall:
     tool_call_id: str
@@ -80,11 +87,15 @@ class RTMiddleTier:
             self._token_provider = get_bearer_token_provider(credentials, "https://cognitiveservices.azure.com/.default")
             self._token_provider() # Warm up during startup so we have a token cached when the first request arrives
 
+    # Handle function calling
     async def _process_message_to_client(self, msg: str, client_ws: web.WebSocketResponse, server_ws: web.WebSocketResponse) -> Optional[str]:
+        # Format message incoming from openAI Server as json
         message = json.loads(msg.data)
         updated_message = msg.data
+        # Handle messages based on type 
         if message is not None:
             match message["type"]:
+                # Hide all informations 'cause reasons 
                 case "session.created":
                     session = message["session"]
                     # Hide the instructions, tools and max tokens from clients, if we ever allow client-side 
@@ -96,32 +107,46 @@ class RTMiddleTier:
                     session["max_response_output_tokens"] = None
                     updated_message = json.dumps(message)
 
+                # Do not propagate messages about function_calling
                 case "response.output_item.added":
                     if "item" in message and message["item"]["type"] == "function_call":
                         updated_message = None
-
+                
+                # Handle function_calls by creating a RTToolCall in self._tools_pending 
                 case "conversation.item.created":
+                    # OpenAI want to call a function so create a RTToolCall in self._tools_pending 
                     if "item" in message and message["item"]["type"] == "function_call":
                         item = message["item"]
                         if item["call_id"] not in self._tools_pending:
+                            # Now exists { "call_id" : RTToolCall }
                             self._tools_pending[item["call_id"]] = RTToolCall(item["call_id"], message["previous_item_id"])
                         updated_message = None
+                        
+                    # Hide middletier actions by obscuring the fact that openAI acknowledge the function call
                     elif "item" in message and message["item"]["type"] == "function_call_output":
                         updated_message = None
-
+                        
+                # Do not propagate messages about function_calling  
                 case "response.function_call_arguments.delta":
                     updated_message = None
                 
+                # Do not propagate messages about function_calling
                 case "response.function_call_arguments.done":
                     updated_message = None
 
+                # Wait for complete creation of response item
                 case "response.output_item.done":
+                    # OpenAI decided to call a function
                     if "item" in message and message["item"]["type"] == "function_call":
+                        # Understand which one 
                         item = message["item"]
-                        tool_call = self._tools_pending[message["item"]["call_id"]]
-                        tool = self.tools[item["name"]]
+                        tool_call = self._tools_pending[message["item"]["call_id"]] # RTToolCall
+                        tool = self.tools[item["name"]] # Tool
+                        # Understand with which arg
                         args = item["arguments"]
+                        # Call it
                         result = await tool.target(json.loads(args))
+                        # Forward result to the right endpoint
                         await server_ws.send_json({
                             "type": "conversation.item.create",
                             "item": {
@@ -157,13 +182,18 @@ class RTMiddleTier:
                             updated_message = json.dumps(message)                        
 
         return updated_message
-
+    
+    # Intercept session.update messages, overide the variables and set tools
     async def _process_message_to_server(self, msg: str, ws: web.WebSocketResponse) -> Optional[str]:
+        # Format messages incoming from application client as json
         message = json.loads(msg.data)
         updated_message = msg.data
+        # Handle messages based on type 
         if message is not None:
             match message["type"]:
+                # Handle only "session.update" message type
                 case "session.update":
+                    # Set up session with defined variables
                     session = message["session"]
                     if self.system_message is not None:
                         session["instructions"] = self.system_message
@@ -175,14 +205,20 @@ class RTMiddleTier:
                         session["disable_audio"] = self.disable_audio
                     if self.voice_choice is not None:
                         session["voice"] = self.voice_choice
+                        
+                    # Define tools available by OpenAI model
                     session["tool_choice"] = "auto" if len(self.tools) > 0 else "none"
                     session["tools"] = [tool.schema for tool in self.tools.values()]
+                    
+                    # Update message and forward it
                     updated_message = json.dumps(message)
-
         return updated_message
 
+    # Handle all the messages as a middletier router
     async def _forward_messages(self, ws: web.WebSocketResponse):
+        # Now the backend becomes a client for the OpenAI server and contacts it via RealtimeAPI
         async with aiohttp.ClientSession(base_url=self.endpoint) as session:
+            # Define headers and param for Azure OpenAI API
             params = { "api-version": self.api_version, "deployment": self.deployment}
             headers = {}
             if "x-ms-client-request-id" in ws.headers:
@@ -191,12 +227,19 @@ class RTMiddleTier:
                 headers = { "api-key": self.key }
             else:
                 headers = { "Authorization": f"Bearer {self._token_provider()}" } # NOTE: no async version of token provider, maybe refresh token on a timer?
+            
+            # Connect with "/openai/realtime" via websocket connection
             async with session.ws_connect("/openai/realtime", headers=headers, params=params) as target_ws:
+                
+                # How rtmt handle messages to send to OpenAI
                 async def from_client_to_server():
+                    # For each available aiohttp.WSMsgType.TEXT message
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
+                            # Process it accordingly
                             new_msg = await self._process_message_to_server(msg, ws)
                             if new_msg is not None:
+                                # Send it to OpenAI Server
                                 await target_ws.send_str(new_msg)
                         else:
                             print("Error: unexpected message type:", msg.type)
@@ -205,25 +248,33 @@ class RTMiddleTier:
                     if target_ws:
                         print("Closing OpenAI's realtime socket connection.")
                         await target_ws.close()
-                        
+                
+                # How rtmt handle messages recived from OpenAI        
                 async def from_server_to_client():
+                    # For each available aiohttp.WSMsgType.TEXT message
                     async for msg in target_ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
+                            # Process it accordingly
                             new_msg = await self._process_message_to_client(msg, ws, target_ws)
                             if new_msg is not None:
+                                # Send it to application Client
                                 await ws.send_str(new_msg)
                         else:
                             print("Error: unexpected message type:", msg.type)
 
                 try:
+                    # Perform async routines a.k.a. handle all the messages as a middletier router
                     await asyncio.gather(from_client_to_server(), from_server_to_client())
                 except ConnectionResetError:
                     # Ignore the errors resulting from the client disconnecting the socket
                     pass
-
+            
+    # Websocket connection
     async def _websocket_handler(self, request: web.Request):
+        # Websocket Handshake when Websocket Request is received on "/realtime"
         ws = web.WebSocketResponse()
         await ws.prepare(request)
+        # Websocket behaviour
         await self._forward_messages(ws)
         return ws
     
