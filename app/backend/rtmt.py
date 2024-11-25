@@ -34,14 +34,15 @@ class Tool:
     schema: Any
 
     def __init__(self, target: Callable[..., ToolResult], schema: Any):
-        """
+        """Initialize correctly the fields
         Args:
-            target (Any): lambda function that represent the functionality of the Tool 
+            target (Callable[..., ToolResult]): Lambda function that represent the functionality of the Tool 
                 e.g. lambda args: function(..., args)
-            schema (Any): json schema for explaining the function to OpenAI API
+                
+            schema (Any): Json schema for explaining the function to OpenAI API
         """
         self.target = target # lambda args: function(..., args)
-        self.schema = schema # 
+        self.schema = schema # JSON description
 
 class RTToolCall:
     tool_call_id: str
