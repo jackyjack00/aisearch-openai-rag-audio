@@ -186,9 +186,11 @@ class RTMiddleTier:
     
     # Intercept session.update messages, overide the variables and set tools
     async def _process_message_to_server(self, msg: str, ws: web.WebSocketResponse) -> Optional[str]:
+        
         # Format messages incoming from application client as json
         message = json.loads(msg.data)
         updated_message = msg.data
+        
         # Handle messages based on type 
         if message is not None:
             match message["type"]:
@@ -213,6 +215,7 @@ class RTMiddleTier:
                     
                     # Update message and forward it
                     updated_message = json.dumps(message)
+        
         return updated_message
 
     # Handle all the messages as a middletier router
