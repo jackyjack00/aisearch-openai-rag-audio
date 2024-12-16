@@ -1,4 +1,4 @@
-./scripts/load_python_env.ps1
+#./scripts/load_python_env.ps1
 
 Write-Host ""
 Write-Host "Restoring frontend npm packages"

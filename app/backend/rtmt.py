@@ -87,7 +87,7 @@ class RTMiddleTier:
         else:
             self._token_provider = get_bearer_token_provider(credentials, "https://cognitiveservices.azure.com/.default")
             self._token_provider() # Warm up during startup so we have a token cached when the first request arrives
-
+        
     # Handle function calling
     async def _process_message_to_client(self, msg: str, client_ws: web.WebSocketResponse, server_ws: web.WebSocketResponse) -> Optional[str]:
         # Format message incoming from openAI Server as json
@@ -221,7 +221,7 @@ class RTMiddleTier:
     # Handle all the messages as a middletier router
     async def _forward_messages(self, ws: web.WebSocketResponse):
         # Now the backend becomes a client for the OpenAI server and contacts it via RealtimeAPI
-        async with aiohttp.ClientSession(base_url=self.endpoint) as session:
+        async with aiohttp.ClientSession(base_url=self.endpoint) as session: # self.endpoint è os.environ["AZURE_OPENAI_ENDPOINT"]
             # Define headers and param for Azure OpenAI API
             params = { "api-version": self.api_version, "deployment": self.deployment}
             headers = {}
@@ -232,9 +232,13 @@ class RTMiddleTier:
             else:
                 headers = { "Authorization": f"Bearer {self._token_provider()}" } # NOTE: no async version of token provider, maybe refresh token on a timer?
             
+            #TODO:remove debug print
+            
+            print("\n\n",headers)
+            print("\n\n",params,"\n\n")
+
             # Connect with "/openai/realtime" via websocket connection
             async with session.ws_connect("/openai/realtime", headers=headers, params=params) as target_ws:
-                
                 # How rtmt handle messages to send to OpenAI
                 async def from_client_to_server():
                     # For each available aiohttp.WSMsgType.TEXT message
@@ -269,6 +273,7 @@ class RTMiddleTier:
                 try:
                     # Perform async routines a.k.a. handle all the messages as a middletier router
                     await asyncio.gather(from_client_to_server(), from_server_to_client())
+                
                 except ConnectionResetError:
                     # Ignore the errors resulting from the client disconnecting the socket
                     pass
@@ -277,6 +282,8 @@ class RTMiddleTier:
     async def _websocket_handler(self, request: web.Request):
         # Websocket Handshake when Websocket Request is received on "/realtime"
         ws = web.WebSocketResponse()
+        #TODO:remove debug print
+        print(f"\n\n\n{ws}\n\n\n")
         await ws.prepare(request)
         # Websocket behaviour
         await self._forward_messages(ws)
