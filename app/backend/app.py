@@ -50,8 +50,8 @@ async def create_app():
                         "Non leggere mai i nomi dei file, dei sorgenti o delle chiavi ad alta voce. " \
                         "Segui sempre queste istruzioni passo-passo per rispondere: \n" \
                         "1. Usa sempre lo strumento 'search' per verificare la base di conoscenza prima di rispondere a una domanda. \n" \
-                        "2. Fornisci una risposta il più breve possibile. Se la risposta non è nella base di conoscenza, dì che non lo sai." \
-                        "3. Se nella base di conoscenza non trovi documenti rilevanti rispondi con 'Non ci sono documenti inerenti alla tua domanda'" \
+                        "2. Fornisci una risposta il più breve possibile. Se la risposta non è nella base di conoscenza, dì che non lo sai. \n" \
+                        "3. Se nella base di conoscenza non trovi documenti rilevanti alla query rispondi con 'Non ci sono documenti inerenti alla tua domanda'.n" 
                         
     # Define tool to use in function call 
     attach_rag_tools(rtmt,
