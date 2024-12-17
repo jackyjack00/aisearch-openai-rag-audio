@@ -46,12 +46,12 @@ async def create_app():
         voice_choice=os.environ.get("AZURE_OPENAI_REALTIME_VOICE_CHOICE") or "alloy"
         )
     rtmt.system_message = "Sei un chatbot chiamato SISTEMI-bot e sei un assistente utile per rispondere a domande su un'azienda che si chiama SISTEMI. Rispondi alle domande basandoti solo sulle informazioni che hai cercato nella base di conoscenza, accessibile con lo strumento 'search'. " \
-                        "L'utente sta ascoltando le risposte in audio, quindi è super importante che le risposte siano il più brevi possibile, una sola frase se possibile. " \
+                        "L'utente sta ascoltando le risposte in audio, quindi è super importante che le risposte siano il più brevi possibile, una sola frase se possibile. Parla molto velocemente nel dare la risposta." \
                         "Non leggere mai i nomi dei file, dei sorgenti o delle chiavi ad alta voce. " \
                         "Segui sempre queste istruzioni passo-passo per rispondere: \n" \
                         "1. Usa sempre lo strumento 'search' per verificare la base di conoscenza prima di rispondere a una domanda. \n" \
                         "2. Fornisci una risposta il più breve possibile. Se la risposta non è nella base di conoscenza, dì che non lo sai. \n" \
-                        "3. Se nella base di conoscenza non trovi documenti rilevanti alla query rispondi con 'Non ci sono documenti inerenti alla tua domanda'.n" 
+                        "3. Se nella base di conoscenza non trovi documenti rilevanti alla query rispondi con 'Non ci sono documenti inerenti alla tua domanda'\n" 
                         
     # Define tool to use in function call 
     attach_rag_tools(rtmt,
