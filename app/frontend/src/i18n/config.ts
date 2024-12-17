@@ -6,6 +6,7 @@ import { initReactI18next } from "react-i18next";
 import enTranslation from "../locales/en/translation.json";
 import esTranslation from "../locales/es/translation.json";
 import frTranslation from "../locales/fr/translation.json";
+import itTranslation from "../locales/it/translation.json"; //DONE: added
 import jaTranslation from "../locales/ja/translation.json";
 
 export const supportedLngs: { [key: string]: { name: string; locale: string } } = {
@@ -20,6 +21,11 @@ export const supportedLngs: { [key: string]: { name: string; locale: string } } 
     fr: {
         name: "Français",
         locale: "fr-FR"
+    },
+    //DONE: added
+    it: {
+        name: "italiano",
+        locale: "it-IT"
     },
     ja: {
         name: "日本語",
@@ -38,8 +44,10 @@ i18next
             en: { translation: enTranslation },
             es: { translation: esTranslation },
             fr: { translation: frTranslation },
+            it: { translation: itTranslation }, //DONE: added
             ja: { translation: jaTranslation }
         },
+        lng: "it", //DONE: added
         fallbackLng: "en",
         supportedLngs: Object.keys(supportedLngs),
         debug: import.meta.env.DEV,

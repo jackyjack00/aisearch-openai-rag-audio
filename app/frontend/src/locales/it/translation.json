@@ -1,13 +1,13 @@
 {
     "app": {
-        "title": "Talk with Stellantis",
-        "footer": "Built by our awsome R&D team",
+        "title": "Parla con Stellantis",
+        "footer": "Costruita dal nostro bellissimo team di R&D",
         "stopRecording": "Stop recording",
         "startRecording": "Start recording",
         "stopConversation": "Stop conversation"
     },
     "status": {
-        "notRecordingMessage": "Ask anything about Stellantis and its offering",
+        "notRecordingMessage": "Chiedimi di Stellantis e delle sue offerte",
         "conversationInProgress": "Conversation in progress"
     },
     "history": {
