@@ -56,7 +56,6 @@ _grounding_tool_schema = {
     }
 }
 
-
 async def call_orchestrator_auth(query:str, url="http://localhost:9000/post") -> dict:
     """Call the orchestrator with its API standard and authentication.
 
@@ -96,6 +95,43 @@ async def call_orchestrator_auth(query:str, url="http://localhost:9000/post") ->
             json_response = await response.json()
             return json_response
 
+async def call_orchestrator_stellantis(query:str, url="http://localhost:9000/post") -> dict:
+    """Call the orchestrator with its API standard and authentication.
+
+    Args:
+        query (str): textual query
+        url (str, optional): URL endpoint to orchestrator. Defaults to "http://localhost:9000/post".
+
+    Returns:
+        dict: json response by orchetrator
+    """
+    async with ClientSession() as session:
+        json_to_orchestrator = {
+          "execEndpoint": "/search",
+          "targetExecutor": "",
+          "data": [{"text": query}],
+          "parameters": {
+             "project_name": "stellantiskb",
+             "id_field": "globalId",
+             "title_field": "title",
+             "content_field": "content",
+             "tensor_field": "tensor",
+             "display_fl": ["content", "question"],
+             "modality": "kw|tensor",
+             "mm": "40%",
+             "top_k": 5,
+             "rerankDocs": 100,
+             "rerankOperator": "multiply",
+             "start": 0,
+             "rows": 10,
+             "search_fl": ["question", "title", "content"]
+          }
+        }
+
+        async with session.post(url=url, json=json_to_orchestrator) as response:
+            json_response = await response.json()
+            return json_response
+
 def clean_html(html_string):
     # Parse the HTML with BeautifulSoup
     soup = BeautifulSoup(html_string, 'html.parser')
@@ -120,7 +156,7 @@ def from_orchestrator_response_to_retrieved_docs( json_response:dict )->List[dic
 
 async def _MAIZE_search_tool( args: Any ) -> ToolResult:
     print(f"Searching for '{args['query']}' in the knowledge base.")
-    orchestrator_response = await call_orchestrator_auth(args['query'])
+    orchestrator_response = await call_orchestrator_stellantis(args['query'])
     result = from_orchestrator_response_to_retrieved_docs(orchestrator_response)
     #result = "Nessun documento rilevante per la query inviata"
     print( result )
