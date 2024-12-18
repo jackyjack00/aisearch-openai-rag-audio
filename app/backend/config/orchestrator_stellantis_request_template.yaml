@@ -1,0 +1,27 @@
+execEndpoint: /search
+targetExecutor: ""
+data:
+  - text: query
+parameters:
+  project_name: stellantiskb
+  id_field: globalId
+  title_field: title
+  content_field: content
+  tensor_field: tensor
+  display_fl:
+    - content
+    - question
+  modality: "kw|tensor"
+  mm: "40%"
+  top_k: 5
+  rerankDocs: 100
+  rerankOperator: multiply
+  start: 0
+  rows: 10
+  search_fl:
+    - question
+    - title
+    - content
+
+
+

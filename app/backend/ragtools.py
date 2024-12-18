@@ -11,6 +11,7 @@ from rtmt import RTMiddleTier, Tool, ToolResult, ToolResultDirection
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
+import yaml
 import os
 
 load_dotenv()
@@ -132,6 +133,35 @@ async def call_orchestrator_stellantis(query:str, url="http://localhost:9000/pos
             json_response = await response.json()
             return json_response
 
+async def call_orchestrator(query:str, url="http://localhost:9000/post") -> dict:
+    """Call the orchestrator with its API standard and authentication.
+
+    Args:
+        query (str): textual query
+        url (str, optional): URL endpoint to orchestrator. Defaults to "http://localhost:9000/post".
+
+    Returns:
+        dict: json response by orchetrator
+    """
+    async with ClientSession() as session:
+        # Load template
+        f = open(os.environ["ORCHESTRATOR_API_INTERFACE_PATH"])
+        json_to_orchestrator = yaml.load(f, Loader=yaml.Loader)
+
+        # Populate with query
+        json_to_orchestrator["data"][0]["text"] = query
+
+        # Populate header
+        if os.getenv("ORCHESTRATOR_API_KEY") is None:
+            headers = {}
+        else:
+            headers = {"x-api-key": os.getenv("ORCHESTRATOR_API_KEY")}
+
+        #Request to orchestrator
+        async with session.post(url=url, json=json_to_orchestrator, headers=headers) as response:
+            json_response = await response.json()
+            return json_response
+
 def clean_html(html_string):
     # Parse the HTML with BeautifulSoup
     soup = BeautifulSoup(html_string, 'html.parser')
@@ -156,7 +186,7 @@ def from_orchestrator_response_to_retrieved_docs( json_response:dict )->List[dic
 
 async def _MAIZE_search_tool( args: Any ) -> ToolResult:
     print(f"Searching for '{args['query']}' in the knowledge base.")
-    orchestrator_response = await call_orchestrator_stellantis(args['query'])
+    orchestrator_response = await call_orchestrator(args['query'])
     result = from_orchestrator_response_to_retrieved_docs(orchestrator_response)
     #result = "Nessun documento rilevante per la query inviata"
     print( result )

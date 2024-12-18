@@ -1,0 +1,24 @@
+execEndpoint: /search
+targetExecutor: ""
+data:
+  - text: query
+parameters:
+  project_name: sisbot2.0
+  id_field: _id
+  title_field: title
+  content_field: content
+  tensor_field: question.tensor
+  display_fl:
+    - context
+    - metadata.mapping
+  modality: "kw|tensor"
+  mm: "40%"
+  top_k: 5
+  rerankDocs: 100
+  rerankOperator: multiply
+  start: 0
+  rows: 10
+  search_fl:
+    - "'question.text'"
+    - "'metadata.mapping'"
+    - "'context'"

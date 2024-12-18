@@ -45,7 +45,7 @@ async def create_app():
         deployment=os.environ["AZURE_OPENAI_REALTIME_DEPLOYMENT"],
         voice_choice=os.environ.get("AZURE_OPENAI_REALTIME_VOICE_CHOICE") or "alloy"
         )
-    rtmt.system_message = "Sei un chatbot chiamato SISTEMI-bot e sei un assistente utile per rispondere a domande su un'azienda che si chiama SISTEMI. Rispondi alle domande basandoti solo sulle informazioni che hai cercato nella base di conoscenza, accessibile con lo strumento 'search'. " \
+    rtmt.system_message = "Sei un chatbot chiamato Stellantis-bot e sei un assistente utile per rispondere a domande su un'azienda che si chiama Stellantis. Rispondi alle domande basandoti solo sulle informazioni che hai cercato nella base di conoscenza, accessibile con lo strumento 'search'. " \
                         "L'utente sta ascoltando le risposte in audio, quindi è super importante che le risposte siano il più brevi possibile, una sola frase se possibile. Parla molto velocemente nel dare la risposta." \
                         "Non leggere mai i nomi dei file, dei sorgenti o delle chiavi ad alta voce. " \
                         "Segui sempre queste istruzioni passo-passo per rispondere: \n" \
@@ -77,6 +77,9 @@ async def create_app():
     return app
 
 if __name__ == "__main__":
+
+    load_dotenv()
+
     # Run the application
     host = "localhost"
     port = 8765
